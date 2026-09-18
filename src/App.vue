@@ -10,6 +10,7 @@ import ChoiceSheet from './components/ChoiceSheet.vue'
 import TaskCard from './components/TaskCard.vue'
 import TaskDrawer from './components/TaskDrawer.vue'
 import { useWorkspace } from './useWorkspace'
+import { useSidebarLayout } from './useSidebarLayout'
 import type { BacklogData, Filters, Task, TaskOverride, ViewType } from './types'
 
 import { sortTasks, taskMarkdown, effortLabel, riskLabel, dateLabel, scopeLabel, phaseLabel, UNKNOWN, type ViewTask } from './planning'
@@ -20,6 +21,9 @@ const loadError = ref('')
 const view = ref<ViewType>('report')
 const mobileFilters = ref(false)
 const sidebarOpen = ref(true)
+const sidebar = ref<HTMLElement | null>(null)
+const pageHeader = ref<HTMLElement | null>(null)
+const { headerHeight, stickyTop } = useSidebarLayout(sidebar, pageHeader)
 const activeTaskId = ref<string | null>(null)
 const toast = ref('')
 const dark = ref(false)
@@ -233,8 +237,8 @@ function chooseSheet(value: string) {
 </script>
 
 <template>
-  <div class="min-h-dvh bg-base-200 pb-20 lg:pb-0">
-    <header class="sticky top-0 z-40 border-b border-base-300 bg-base-100/95 backdrop-blur">
+  <div class="min-h-dvh bg-base-200 pb-20 lg:pb-0" :style="{ '--workspace-header-height': `${headerHeight}px`, '--sidebar-sticky-top': `${stickyTop}px` }">
+    <header ref="pageHeader" class="sticky top-0 z-40 border-b border-base-300 bg-base-100/95 backdrop-blur">
       <div class="mx-auto flex min-h-16 max-w-[1800px] items-center gap-1 px-3 sm:gap-2 sm:px-5">
         <button class="btn btn-ghost btn-square touch lg:hidden" aria-label="Menüyü aç" @click="sidebarOpen = !sidebarOpen"><Menu /></button>
         <button class="btn btn-ghost btn-square touch hidden lg:inline-flex" :aria-label="sidebarOpen ? 'Kenar çubuğunu kapat' : 'Kenar çubuğunu aç'" @click="sidebarOpen = !sidebarOpen"><PanelLeftClose /></button>
@@ -268,7 +272,7 @@ function chooseSheet(value: string) {
     <div v-else-if="loadError" class="mx-auto mt-16 max-w-xl p-5"><div class="alert alert-error"><span>Veri yüklenemedi: {{ loadError }}</span></div></div>
 
     <div v-else-if="data" class="mx-auto flex max-w-[1800px]">
-      <aside v-show="sidebarOpen" class="fixed inset-y-16 left-0 z-30 w-[min(23rem,90vw)] overflow-y-auto border-r border-base-300 bg-base-100 p-4 shadow-xl lg:sticky lg:top-16 lg:h-[calc(100dvh-4rem)] lg:w-80 lg:shrink-0 lg:shadow-none scrollbar-thin">
+      <aside ref="sidebar" v-show="sidebarOpen" class="workspace-sidebar border-r border-base-300 bg-base-100 p-4 shadow-xl lg:shadow-none scrollbar-thin">
         <div class="mb-4 flex justify-end lg:hidden"><button class="btn btn-ghost btn-square touch" aria-label="Menüyü kapat" @click="sidebarOpen = false"><X /></button></div>
         <nav aria-label="Görünümler" class="mb-6">
           <h2 class="mb-2 px-3 text-base font-bold">Görünümler</h2>

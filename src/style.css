@@ -43,8 +43,9 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; scroll-behavior: smooth; overflow-x: hidden; }
-body { min-width: 320px; min-height: 100dvh; margin: 0; overflow-x: hidden; background: var(--color-base-200); color: var(--color-base-content); line-height: 1.5; }
+/* Clip horizontal overflow without creating a scroll ancestor for sticky panels. */
+html { min-width: 320px; scroll-behavior: smooth; overflow-x: clip; }
+body { min-width: 320px; min-height: 100dvh; margin: 0; overflow-x: clip; background: var(--color-base-200); color: var(--color-base-content); line-height: 1.5; }
 /* Muted copy still meets the 7:1 AAA target on the light pastel surfaces. */
 [class*="text-base-content/"] { color: #334155 !important; opacity: 1 !important; }
 .stat-title, .stat-desc { color: #334155 !important; opacity: 1 !important; }
@@ -61,8 +62,23 @@ h1, h2, h3, .font-heading { font-family: "Fira Code", ui-monospace, monospace; }
 .skip-link:focus { top: 1rem; }
 
 .touch { min-width: 48px; min-height: 48px; }
-.focusable:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+/* Suppress pointer-only focus rings, not borders, selection states or keyboard focus. */
+:is(button, a, summary, [tabindex]):focus:not(:focus-visible) { outline: none; }
+.focusable:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   outline: 4px solid #0c4a6e; outline-offset: 3px;
+}
+#main:focus-visible { outline-offset: -4px; }
+.workspace-sidebar {
+  position: fixed; top: var(--workspace-header-height, 64px);
+  bottom: calc(4rem + var(--safe-bottom)); left: 0; z-index: 30;
+  width: min(23rem, 90vw); overflow-y: auto; overscroll-behavior-y: contain;
+}
+@media (min-width: 1024px) {
+  .workspace-sidebar {
+    position: sticky; top: var(--sidebar-sticky-top, 76px); bottom: auto;
+    align-self: flex-start; flex-shrink: 0; width: 20rem;
+    overflow: visible;
+  }
 }
 .mono { font-family: "Fira Code", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 .scrollbar-thin { scrollbar-width: thin; scrollbar-color: color-mix(in oklch, var(--color-base-content) 25%, transparent) transparent; }
@@ -119,7 +135,9 @@ h1, h2, h3, .font-heading { font-family: "Fira Code", ui-monospace, monospace; }
 [data-theme="night"] .control-button:hover,
 [data-theme="night"] .control-button:active { background: #1e293b; }
 [data-theme="night"] button:focus-visible, [data-theme="night"] a:focus-visible,
-[data-theme="night"] input:focus-visible, [data-theme="night"] textarea:focus-visible {
+[data-theme="night"] input:focus-visible, [data-theme="night"] textarea:focus-visible,
+[data-theme="night"] select:focus-visible, [data-theme="night"] summary:focus-visible,
+[data-theme="night"] [tabindex]:focus-visible {
   outline-color: #7dd3fc; box-shadow: 0 0 0 3px #0f172a;
 }
 /* DaisyUI compact defaults may inherit 0.875rem into cards and controls. */

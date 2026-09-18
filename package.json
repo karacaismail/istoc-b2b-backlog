@@ -13,7 +13,8 @@
     "test:effort": "node --experimental-strip-types --test tests/effort-model.test.ts",
     "test:game-ui": "playwright test tests/game-ui.spec.ts",
     "test:planning": "node --experimental-strip-types --test tests/planning.test.ts",
-    "test:tasks-ui": "playwright test tests/tasks-ui.spec.ts"
+    "test:tasks-ui": "playwright test tests/tasks-ui.spec.ts",
+    "test:layout": "playwright test --config=playwright.layout.config.ts"
   },
   "dependencies": {
     "@pixi/ui": "^2.3.2",
