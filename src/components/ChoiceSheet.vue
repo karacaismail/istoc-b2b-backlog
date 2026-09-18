@@ -1,17 +1,29 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
+import { nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { Check, X } from 'lucide-vue-next'
 
 defineProps<{ title: string; value: string; options: { value: string; label: string; hint?: string }[] }>()
 const emit = defineEmits<{ close: []; select: [value: string] }>()
 const closeButton = ref<HTMLButtonElement | null>(null)
-onMounted(() => nextTick(() => closeButton.value?.focus()))
+const sheet = ref<HTMLElement|null>(null)
+let previousFocus: HTMLElement|null = null
+let previousOverflow = ''
+onMounted(() => { previousFocus=document.activeElement as HTMLElement; previousOverflow=document.body.style.overflow; document.body.style.overflow='hidden'; nextTick(() => closeButton.value?.focus()) })
+onBeforeUnmount(() => { document.body.style.overflow=previousOverflow; previousFocus?.focus() })
+function onKey(event:KeyboardEvent) {
+  if(event.key==='Escape') { event.preventDefault(); emit('close'); return }
+  if(event.key!=='Tab')return
+  const buttons=[...(sheet.value?.querySelectorAll<HTMLButtonElement>('button')||[])]
+  const first=buttons[0],last=buttons.at(-1)
+  if(event.shiftKey && document.activeElement===first){event.preventDefault();last?.focus()}
+  if(!event.shiftKey && document.activeElement===last){event.preventDefault();first?.focus()}
+}
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[120]" role="dialog" aria-modal="true" :aria-label="title" @keydown.esc="emit('close')">
+  <div class="fixed inset-0 z-[120]" role="dialog" aria-modal="true" :aria-label="title" @keydown="onKey">
     <button class="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" :aria-label="`${title} panelini kapat`" @click="emit('close')"></button>
-    <section class="choice-sheet absolute inset-x-0 bottom-0 max-h-[82dvh] overflow-y-auto rounded-t-[1.75rem] border border-base-300 bg-base-100 p-4 pb-safe shadow-2xl md:inset-auto md:left-1/2 md:top-1/2 md:w-[32rem] md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:p-5">
+    <section ref="sheet" class="choice-sheet absolute inset-x-0 bottom-0 max-h-[82dvh] overflow-y-auto rounded-t-[1.75rem] border border-base-300 bg-base-100 p-4 pb-safe shadow-2xl md:inset-auto md:left-1/2 md:top-1/2 md:w-[32rem] md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:p-5">
       <div class="mx-auto mb-3 h-1.5 w-12 rounded-full bg-base-300 md:hidden"></div>
       <header class="mb-4 flex items-center justify-between gap-3">
         <h2 class="text-xl font-bold text-balance">{{ title }}</h2>

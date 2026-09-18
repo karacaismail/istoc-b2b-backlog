@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import type { Task, TaskOverride } from './types'
+import { effectiveTask } from './planning'
 
 const STORAGE_KEY = 'istoc-backlog-workspace-v1'
 
@@ -10,7 +11,7 @@ export function useWorkspace() {
   watch(overrides, value => localStorage.setItem(STORAGE_KEY, JSON.stringify(value)), { deep: true })
 
   function snapshot(label: string) {
-    undoStack.value.push({ label, before: structuredClone(overrides.value) })
+    undoStack.value.push({ label, before: JSON.parse(JSON.stringify(overrides.value)) })
     if (undoStack.value.length > 20) undoStack.value.shift()
   }
 
@@ -24,12 +25,7 @@ export function useWorkspace() {
   }
 
   function taskView(task: Task): Task & { workspace: TaskOverride; effectiveStatus: string; effectivePriority: string } {
-    const workspace = overrides.value[task.id] || {}
-    return Object.assign({}, task, {
-      workspace,
-      effectiveStatus: workspace.status || task.status,
-      effectivePriority: workspace.priority || task.planning.priority,
-    })
+    return effectiveTask(task, overrides.value[task.id] || {})
   }
 
   function undo() {

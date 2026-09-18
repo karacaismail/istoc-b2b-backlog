@@ -15,14 +15,18 @@
   --color-primary-content: #ffffff;
   --color-secondary: #334155;
   --color-secondary-content: #ffffff;
-  --color-accent: #075985;
+  --color-accent: #0c4a6e;
   --color-accent-content: #ffffff;
   --color-neutral: #1f2937;
   --color-neutral-content: #ffffff;
   --color-info: #075985;
+  --color-info-content: #ffffff;
   --color-success: #166534;
+  --color-success-content: #ffffff;
   --color-warning: #92400e;
+  --color-warning-content: #ffffff;
   --color-error: #991b1b;
+  --color-error-content: #ffffff;
   --radius-selector: .75rem;
   --radius-field: .75rem;
   --radius-box: 1rem;
@@ -71,10 +75,10 @@ h1, h2, h3, .font-heading { font-family: "Fira Code", ui-monospace, monospace; }
 .text-pretty { text-wrap: pretty; }
 .control-button { touch-action: manipulation; transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease; }
 .control-button:hover, .control-button:active { border-color: var(--color-accent); background: #eef7ff; }
-.metric-pill { display: inline-flex; min-height: 2rem; align-items: center; border: 1px solid #94a3b8; border-radius: 999px; background: #f8fafc; padding: .25rem .7rem; color: #1e293b; font-weight: 600; white-space: nowrap; }
+.metric-pill { display: inline-flex; min-height: 2rem; align-items: center; border: 1px solid #94a3b8; border-radius: 999px; background: #f8fafc; padding: .25rem .7rem; color: #1e293b; font-weight: 600; white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
 .task-card { content-visibility: auto; contain-intrinsic-size: 0 24rem; transition: border-color 160ms ease, box-shadow 160ms ease; }
 .task-card:hover { border-color: #94a3b8; box-shadow: 0 10px 24px rgba(30,41,59,.10); }
-.task-card dt, main dl dt { color: #475569; font-weight: 600; }
+.task-card dt, main dl dt { color: #334155; font-weight: 600; }
 .choice-sheet { overscroll-behavior: contain; }
 .choice-row { transition: border-color 160ms ease, background-color 160ms ease; }
 .filter-summary { display: flex; min-height: 3.5rem; list-style: none; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 1rem; font-weight: 700; }
@@ -104,3 +108,19 @@ h1, h2, h3, .font-heading { font-family: "Fira Code", ui-monospace, monospace; }
   main { padding: 0 !important; }
   .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #cbd5e1; }
 }
+
+[data-theme="night"] [class*="text-base-content/"],
+[data-theme="night"] .stat-title, [data-theme="night"] .stat-desc,
+[data-theme="night"] .task-card dt, [data-theme="night"] main dl dt { color: #cbd5e1 !important; }
+[data-theme="night"] .switch-row { color: #111827; }
+[data-theme="night"] { --color-accent: #7dd3fc; --color-accent-content: #0f172a; }
+[data-theme="night"] .bg-primary .opacity-80,
+[data-theme="night"] .bg-primary .opacity-90 { opacity: 1; }
+[data-theme="night"] .control-button:hover,
+[data-theme="night"] .control-button:active { background: #1e293b; }
+[data-theme="night"] button:focus-visible, [data-theme="night"] a:focus-visible,
+[data-theme="night"] input:focus-visible, [data-theme="night"] textarea:focus-visible {
+  outline-color: #7dd3fc; box-shadow: 0 0 0 3px #0f172a;
+}
+/* DaisyUI compact defaults may inherit 0.875rem into cards and controls. */
+.btn, .badge, .menu, .table, .card-body, .label-text { font-size: 1rem; }

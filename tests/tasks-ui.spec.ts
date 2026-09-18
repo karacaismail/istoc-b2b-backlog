@@ -1,0 +1,110 @@
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+const title='Checkout doğrulama ve tek sipariş oluşturma'
+async function list(page:any){await page.getByRole('navigation',{name:'Görünümler',exact:true}).getByRole('button',{name:'Liste',exact:true}).click()}
+async function task(page:any,id:string,name:string){await page.getByRole('searchbox',{name:'Görevlerde ara'}).fill(id);await page.getByRole('heading',{name,exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible()}
+
+test('canonical scope, independent planning, export and reload',async({page,context})=>{
+ await context.grantPermissions(['clipboard-read','clipboard-write'])
+ await page.setViewportSize({width:1440,height:1000});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+ await page.goto('./');await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ await page.getByRole('button',{name:'60 yeni kaydı incele'}).click();await expect(page.getByLabel('Sonuç özeti')).toContainText('60 sonuç')
+ await page.getByRole('button',{name:'Temizle',exact:true}).click()
+ await task(page,'TASK-333',title)
+ const dialog=page.getByRole('dialog')
+ await dialog.getByRole('group',{name:'Öncelik',exact:true}).getByRole('button',{name:'P3',exact:true}).click()
+ await dialog.getByRole('group',{name:/Efor ·/}).getByRole('button',{name:'0 SP',exact:true}).click()
+ await dialog.getByRole('group',{name:/Risk olasılığı/}).getByRole('button',{name:'4',exact:true}).click()
+ await dialog.getByRole('group',{name:/Risk etkisi/}).getByRole('button',{name:'5',exact:true}).click()
+ await expect(dialog.getByRole('status')).toContainText('20/25')
+ await dialog.getByRole('group',{name:'Önemli mi?'}).getByRole('button',{name:'Evet',exact:true}).click()
+ await dialog.getByRole('group',{name:'Acil mi?'}).getByRole('button',{name:'Hayır',exact:true}).click()
+ await expect(dialog).toContainText('Eisenhower: Planla')
+ await dialog.getByLabel('Hedef tarih',{exact:true}).fill('2026-12-11');await dialog.getByLabel('Hedef tarih',{exact:true}).press('Tab')
+ await dialog.getByRole('button',{name:'Görevi kopyala',exact:true}).click()
+ const text=await page.evaluate(()=>navigator.clipboard.readText())
+ for(const expected of ['**Öncelik:** P3','**Efor:** 0 SP','**Risk:** 20/25','**Hedef:** 2026-12-11','**Eisenhower:** Planla'])expect(text).toContain(expected)
+ await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0)
+ await page.getByRole('navigation',{name:'Görünümler',exact:true}).getByRole('button',{name:'Tablo',exact:true}).click()
+ const row=page.locator('tbody tr');await expect(row).toHaveCount(1);await expect(row).toContainText('20/25');await expect(row).toContainText('0 SP');await expect(row).toContainText('2026-12-11')
+ await page.getByRole('button',{name:'Dışa aktar'}).click()
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Filtreleneni CSV indir'}).click();const file=await (await download).path();expect(file).toBeTruthy()
+ const fs=await import('node:fs/promises');const csv=await fs.readFile(file!,'utf8');expect(csv).toContain('"20"');expect(csv).toContain('"2026-12-11"');expect(csv).toContain('"P3"')
+ await page.reload();await list(page);await task(page,'TASK-333',title);await expect(page.getByRole('group',{name:/Efor ·/})).toContainText('0 SP');await expect(page.getByRole('status')).toContainText('20/25')
+ expect(errors).toEqual([])
+})
+
+test('remove nested children, undo and show real prerequisite connections',async({page})=>{
+ await page.setViewportSize({width:1440,height:1000});await page.goto('./');await list(page)
+ await task(page,'TASK-322','Mevcut medya/DAM servisi ve ortak dosya sözleşmesi')
+ await page.getByRole('button',{name:'Alt görevleri kaldır',exact:true}).click();await page.keyboard.press('Escape')
+ await page.getByRole('searchbox').fill('');await expect(page.getByLabel('Sonuç özeti')).toContainText('377 sonuç')
+ await page.getByRole('button',{name:'Son işlemi geri al'}).click();await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ await page.getByRole('searchbox').fill('TASK-333')
+ await page.getByRole('navigation',{name:'Görünümler',exact:true}).getByRole('button',{name:'Bağımlılık',exact:true}).click()
+ await expect(page.locator('main')).toContainText('TASK-328');await expect(page.locator('main')).toContainText('Filtre dışında')
+ await page.getByRole('button',{name:/TASK-328 · Rezervasyon/}).click();await expect(page.getByRole('dialog')).toContainText('Rezervasyon al, tüket')
+})
+
+for(const width of [320,390,1440])test(`tasks fit and remain accessible at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+ await page.goto('./');await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/tasks-report-${width}.png`,fullPage:true})
+ if(width<1024)await page.getByRole('button',{name:'Daha',exact:true}).click()
+ await page.getByRole('navigation',{name:'Görünümler',exact:true}).getByRole('button',{name:'Kartlar',exact:true}).click()
+ await page.getByRole('searchbox').fill('TASK-333');await expect(page.locator('main')).toContainText('Tahmin yok')
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/tasks-card-${width}.png`,fullPage:true})
+ await page.getByRole('heading',{name:title,exact:true}).click()
+ await expect(page.getByRole('dialog')).toBeVisible()
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ const small=await page.locator('[role="dialog"] button,[role="dialog"] p,[role="dialog"] label').evaluateAll(nodes=>nodes.filter(e=>e.getBoundingClientRect().width&&parseFloat(getComputedStyle(e).fontSize)<16).map(e=>e.textContent));expect(small).toEqual([])
+ const audit=await new AxeBuilder({page}).include('[role="dialog"]').withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze()
+ expect(audit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))).toEqual([])
+ await page.keyboard.press('Escape');expect(errors).toEqual([])
+})
+
+test('all planning views, independent filters and sort sheets handle unknown values',async({page})=>{
+ await page.setViewportSize({width:1440,height:1000});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./')
+ const nav=page.getByRole('navigation',{name:'Görünümler',exact:true})
+ for(const name of ['Zaman','Kanban','Pivot','Matrisler']){
+  await nav.getByRole('button',{name,exact:true}).click();await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ }
+ await page.getByRole('button',{name:'380 risk değerlendirmesi bekleyen kaydı aç'}).click()
+ await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ await page.getByRole('button',{name:'Temizle',exact:true}).click()
+ await page.getByRole('button',{name:'Sırala B2B önceliği'}).click()
+ await page.getByRole('dialog',{name:'Görevleri sırala'}).getByRole('button',{name:'Efor Küçük işlerden büyüğe'}).click()
+ await page.getByRole('button',{name:'Grupla Küme',exact:true}).click()
+ await page.getByRole('dialog',{name:'Görevleri grupla'}).getByRole('button',{name:/Denetimdeki değişiklik Yeni iş/}).click()
+ await expect(page.locator('main')).toContainText('Yeni ortak iş')
+ const filters=page.getByRole('region',{name:'Filtreler',exact:true})
+ await filters.locator('summary').filter({hasText:'Kapsam'}).click();await filters.getByRole('button',{name:'Karar gerektiren',exact:true}).click()
+ await expect(page.getByLabel('Sonuç özeti')).toContainText('9 sonuç')
+ await page.getByRole('button',{name:'Temizle',exact:true}).click()
+ await page.getByRole('searchbox').fill('TASK-224');await expect(page.getByLabel('Sonuç özeti')).toContainText('0 sonuç')
+ await page.getByLabel('Geçmiş kayıtları da göster').check();await expect(page.getByLabel('Sonuç özeti')).toContainText('1 sonuç')
+ expect(errors).toEqual([])
+})
+
+test('320px header actions stay fully on screen and sort works by touch',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:320,height:840},hasTouch:true,isMobile:true});const page=await context.newPage();await page.goto('./');await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ const bad=await page.locator('header').first().locator('button,a').evaluateAll(nodes=>nodes.filter(e=>e.getClientRects().length).map(e=>({text:e.getAttribute('aria-label')||e.textContent,rect:e.getBoundingClientRect()})).filter(({rect})=>rect.left<0||rect.right>innerWidth).map(x=>x.text));expect(bad).toEqual([])
+ await page.getByRole('button',{name:'Sırala B2B önceliği'}).tap();await page.getByRole('dialog',{name:'Görevleri sırala'}).getByRole('button',{name:'Risk Yüksek riskten düşüğe'}).tap();await expect(page.getByRole('button',{name:'Sırala Risk',exact:true})).toBeVisible()
+ await page.screenshot({path:'test-results/tasks-touch-320.png'});await context.close()
+})
+
+test('report contrast, minimum text and keyboard focus in sort dialog',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('./');await expect(page.getByLabel('Sonuç özeti')).toContainText('380 sonuç')
+ for(const dark of [false,true]){
+  if(dark)await page.getByRole('button',{name:'Koyu tema',exact:true}).click()
+  const result=await new AxeBuilder({page}).withRules(['color-contrast-enhanced']).analyze()
+  expect(result.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))).toEqual([])
+ }
+ const small=await page.locator('button,p,a,h1,h2,h3').evaluateAll(nodes=>nodes.filter(e=>e.getBoundingClientRect().width&&parseFloat(getComputedStyle(e).fontSize)<16).map(e=>e.textContent));expect(small).toEqual([])
+ const opener=page.getByRole('button',{name:'Sırala B2B önceliği'});await opener.click();const dialog=page.getByRole('dialog',{name:'Görevleri sırala'})
+ await page.keyboard.press('Shift+Tab');await expect(dialog.getByRole('button',{name:'Başlık Alfabetik sıra'})).toBeFocused()
+ await page.keyboard.press('Tab');await expect(dialog.getByRole('button',{name:'Kapat',exact:true})).toBeFocused()
+ await page.keyboard.press('Escape');await expect(opener).toBeFocused()
+})

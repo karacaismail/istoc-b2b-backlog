@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CheckSquare, Copy, EyeOff, Star, Users } from 'lucide-vue-next'
+import { effortLabel, riskLabel, scopeLabel } from '../planning'
 import type { Task, TaskOverride } from '../types'
 
 defineProps<{ task: Task & { workspace: TaskOverride; effectiveStatus: string; effectivePriority: string }; setName: string }>()
@@ -24,12 +25,12 @@ const priorityClass: Record<string, string> = {
       </div>
       <p class="line-clamp-2 text-base text-base-content/75">{{ task.user_story?.text || task.technical_objective || task.source_wbs || 'Tanım görev ayrıntısında.' }}</p>
       <dl class="grid grid-cols-3 gap-2 rounded-xl bg-base-200 p-3">
-        <div><dt>Öncelik</dt><dd class="mt-1 font-bold whitespace-nowrap">{{ task.effectivePriority }} · {{ task.planning.priority_score }}</dd></div>
-        <div><dt>Risk</dt><dd class="mt-1 font-bold whitespace-nowrap">{{ task.planning.risk_score }}/25</dd></div>
-        <div><dt>Efor</dt><dd class="mt-1 font-bold whitespace-nowrap">{{ task.planning.effort_points }} SP</dd></div>
+        <div><dt>Öncelik</dt><dd class="mt-1 font-bold">{{ task.effectivePriority }}</dd></div>
+        <div><dt>Risk</dt><dd class="mt-1 font-bold">{{ riskLabel(task.planning.risk_score) }}</dd></div>
+        <div><dt>Efor</dt><dd class="mt-1 font-bold">{{ effortLabel(task.planning.effort_points) }}</dd></div>
       </dl>
-      <div class="flex flex-wrap gap-2"><span class="metric-pill">{{ task.planning.moscow }}</span><span class="metric-pill">{{ task.planning.eisenhower }}</span><span v-for="label in task.discovery_labels" :key="label" class="metric-pill">{{ label }}</span></div>
-      <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-base-300 pt-3 text-base">
+      <div class="flex flex-wrap gap-2"><span class="metric-pill">{{ scopeLabel(task.planning.scope) }}</span><span v-for="label in task.change_labels" :key="label" class="metric-pill">{{ label }}</span><span v-for="label in task.discovery_labels" :key="label" class="metric-pill">{{ label }}</span></div>
+      <div class="flex flex-wrap items-center gap-3 border-t border-base-300 pt-3 text-base">
         <button class="min-h-11 min-w-0 truncate text-left font-semibold text-accent underline decoration-2 underline-offset-4" @click="emit('open', task)">{{ setName }}</button>
         <div class="flex items-center gap-1">
           <span class="inline-flex min-h-11 items-center gap-1" :aria-label="`${task.acceptance_criteria?.length || 0} kabul kriteri`"><CheckSquare :size="18" aria-hidden="true" />{{ task.acceptance_criteria?.length || 0 }}</span>

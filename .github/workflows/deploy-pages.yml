@@ -28,6 +28,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run test:effort
+      - run: pnpm run test:planning
       - run: pnpm run build:site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
