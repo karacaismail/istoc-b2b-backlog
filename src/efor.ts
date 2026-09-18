@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
 import Effort from './Effort.vue'
-import './style.css'
+import './efor.css'
 
 createApp(Effort).mount('#app')

@@ -1,0 +1,82 @@
+import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+const names=['Ahmet','Bora','Ali','Metin']
+async function audit(page:any){
+ const base=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze()
+ const enhanced=await new AxeBuilder({page}).withRules(['color-contrast-enhanced']).analyze()
+ expect([...base.violations,...enhanced.violations].map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))).toEqual([])
+}
+test('mobile game: real board, hidden poker, dependencies, completion, export and persistence',async({page})=>{
+ await page.setViewportSize({width:390,height:844})
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
+ await page.goto('efor/');await expect(page.locator('canvas')).toBeVisible()
+ await expect(page.getByRole('button',{name:'4 Planı al'})).toBeDisabled()
+ // A genuine Pixi UI pointer hit selects Bora on the painted game board.
+ const seat=page.getByRole('button',{name:'Bora kapasitesini düzenle'});const box=await seat.boundingBox();expect(box).toBeTruthy();await page.mouse.click(box!.x+box!.width/2,box!.y+box!.height/2)
+ await expect(page.getByRole('heading',{name:'Bora için kapasiteyi ayarla'})).toBeVisible()
+ await page.getByRole('button',{name:/İZİN KARTI 8 saat/}).click()
+ await expect(page.locator('.ink-stamp')).toContainText('190 / 198')
+ // Same board operation has a keyboard equivalent.
+ await page.getByRole('button',{name:'Ahmet kapasitesini düzenle'}).focus();await page.keyboard.press('Enter')
+ await expect(page.getByRole('heading',{name:'Ahmet için kapasiteyi ayarla'})).toBeVisible()
+ await page.getByRole('button',{name:'Ekibi masaya al'}).click()
+ for(let i=0;i<4;i++){
+  await page.getByRole('button',{name:`${names[i]}: ${i===1?5:3} puan seç ve kilitle`}).click()
+  await expect(page.getByRole('button',{name:`${names[i]}: 3 puan seç ve kilitle`})).toHaveCount(0)
+  if(i<3)await page.getByRole('button',{name:`${names[i+1]} hazır`}).click()
+ }
+ await page.getByRole('button',{name:'Kartları birlikte aç'}).click()
+ await expect(page.locator('.vote-receipt')).toContainText('5 SP')
+ await audit(page);await page.screenshot({path:'test-results/game-poker-mobile.png',fullPage:true})
+ await page.getByRole('button',{name:'3 SP',exact:true}).click()
+ await page.locator('.turn-dock').getByRole('button',{name:'Sprinti kur'}).click()
+ await page.getByRole('button',{name:'Siparişi oluştur, 5 SP, sprinte ekle'}).click()
+ await expect(page.locator('.planning-feedback')).toContainText('Ön koşul eksik')
+ await expect(page.getByRole('button',{name:'Planı tamamla'})).toBeDisabled()
+ for(const name of ['Sepeti doğrula, 2 SP, sprinte ekle','Sipariş özeti, 3 SP, sprinte ekle','Durumu bildir, 3 SP, sprinte ekle'])await page.getByRole('button',{name,exact:true}).click()
+ await page.getByRole('button',{name:'Kartı aç',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Destek çağrısı!'})).toBeVisible()
+ await page.getByRole('button',{name:'Yeni entegrasyon, 13 SP, sprinte ekle'}).click()
+ await expect(page.locator('.planning-feedback')).toContainText('çok belirsiz')
+ await page.getByRole('button',{name:'13 SP · Parçala'}).click()
+ await expect(page.getByRole('button',{name:/API keşfi, 3 SP/})).toBeVisible()
+ for(const name of ['Testler geçti, kod incelendi.','Kabul kriterleri doğrulandı.','Artırım kullanılabilir; yarım iş Done değil.'])await page.getByRole('checkbox',{name,exact:true}).check()
+ await audit(page);await page.screenshot({path:'test-results/game-sprint-mobile.png',fullPage:true})
+ await expect(page.getByRole('button',{name:'Planı tamamla'})).toBeEnabled()
+ await page.getByRole('button',{name:'Planı tamamla'}).click()
+ await expect(page.locator('.result-medallion')).toContainText('100')
+ const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'Markdown indir'}).click();const download=await downloadPromise;expect(download.suggestedFilename()).toBe('sprint-odyssey-plan.md')
+ await page.reload();await expect(page.locator('.plan-paper')).toBeVisible()
+ await page.screenshot({path:'test-results/game-result-mobile.png',fullPage:true})
+ await audit(page)
+ await page.getByRole('button',{name:'Oyun ayarları',exact:true}).click()
+ await page.getByLabel('Sprint 1',{exact:true}).fill('0');await page.getByLabel('Sprint 2',{exact:true}).fill('0');await page.getByLabel('Sprint 3',{exact:true}).fill('0');await page.getByRole('button',{name:'Ayarları uygula'}).click()
+ await expect(page.locator('.planning-feedback')).toContainText('SP fazla')
+ await expect(page.getByRole('button',{name:'Planı tamamla'})).toBeDisabled()
+ expect(errors).toEqual([])
+})
+for(const width of [320,390,768,1440])test(`layout and accessibility at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await page.goto('efor/');await expect(page.locator('canvas')).toBeVisible()
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ const small=await page.locator('button,h1,h2,h3,p,a').evaluateAll(nodes=>nodes.filter(e=>e.getBoundingClientRect().width&&parseFloat(getComputedStyle(e).fontSize)<16).map(e=>e.textContent));expect(small).toEqual([])
+ await audit(page)
+ await page.screenshot({path:`test-results/game-${width}.png`,fullPage:true})
+ await page.getByRole('button',{name:'Oyun ayarları',exact:true}).click()
+ await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible()
+})
+test('HTML controls remain playable when WebGL is unavailable',async({browser})=>{
+ const context=await browser.newContext();const page=await context.newPage()
+ await page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type:string,...args:any[]){if(type.includes('webgl'))return null;return (original as any).call(this,type,...args)} as any})
+ await page.goto('efor/');await expect(page.getByText('Tahta çizimi bu cihazda açılamadı.')).toBeVisible()
+ await page.getByRole('button',{name:'Ekibi masaya al'}).click();await expect(page.getByRole('button',{name:'Ahmet: 3 puan seç ve kilitle'})).toBeVisible();await context.close()
+})
+
+test('touch device can operate painted pieces and semantic cards',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true})
+ const page=await context.newPage();await page.goto('efor/');await expect(page.locator('canvas')).toBeVisible()
+ const box=await page.getByRole('button',{name:'Bora kapasitesini düzenle'}).boundingBox();expect(box).toBeTruthy();
+ await page.touchscreen.tap(box!.x+box!.width/2,box!.y+box!.height/2)
+ await expect(page.getByRole('heading',{name:'Bora için kapasiteyi ayarla'})).toBeVisible()
+ await page.getByRole('button',{name:/İZİN KARTI 8 saat/}).tap();await expect(page.locator('.ink-stamp')).toContainText('190 / 198')
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await context.close()
+})
