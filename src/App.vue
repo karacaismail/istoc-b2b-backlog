@@ -13,6 +13,7 @@ import type { BacklogData, Filters, Task, TaskOverride, ViewType } from './types
 
 type ViewTask = Task & { workspace: TaskOverride; effectiveStatus: string; effectivePriority: string }
 const data = ref<BacklogData | null>(null)
+const baseUrl = import.meta.env.BASE_URL
 const loading = ref(true)
 const loadError = ref('')
 const view = ref<ViewType>('report')
@@ -184,9 +185,13 @@ function selectView(id: ViewType) { view.value = id; if (window.innerWidth < 102
         <button class="btn btn-ghost btn-square touch lg:hidden" aria-label="Menüyü aç" @click="sidebarOpen = !sidebarOpen"><Menu /></button>
         <button class="btn btn-ghost btn-square touch hidden lg:inline-flex" :aria-label="sidebarOpen ? 'Kenar çubuğunu kapat' : 'Kenar çubuğunu aç'" @click="sidebarOpen = !sidebarOpen"><PanelLeftClose /></button>
         <div class="min-w-0">
-          <h1 class="truncate text-lg font-bold sm:text-xl">İstoç B2B Backlog</h1>
+          <h1 class="hidden truncate text-lg font-bold md:block sm:text-xl">İstoç B2B Backlog</h1>
           <p v-if="data" class="hidden text-base text-base-content/65 sm:block">r{{ data.meta.dataset_revision }} · {{ data.meta.task_count }} görev · {{ data.meta.set_count }} küme</p>
         </div>
+        <nav class="ml-1 flex rounded-lg border border-base-300 bg-base-200 p-1 md:ml-5" aria-label="Ana sayfalar">
+          <a class="btn btn-sm min-h-10 bg-base-100 font-bold" :href="baseUrl" aria-current="page">Tasks</a>
+          <a class="btn btn-ghost btn-sm min-h-10" :href="`${baseUrl}efor/`">Efor</a>
+        </nav>
         <div class="ml-auto flex items-center gap-1 sm:gap-2">
           <button class="btn btn-ghost btn-square touch" :aria-label="dark ? 'Açık tema' : 'Koyu tema'" @click="dark = !dark"><Sun v-if="dark" /><Moon v-else /></button>
           <button class="btn btn-ghost btn-square touch" :disabled="!undoStack.length" aria-label="Son işlemi geri al" @click="doUndo"><Undo2 /></button>

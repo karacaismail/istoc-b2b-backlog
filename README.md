@@ -2,6 +2,11 @@
 
 İstoç B2B pazaryeri için kanonik görev veri kümesini mobil öncelikli bir çalışma alanına dönüştürür. Uygulama görevleri küme, öncelik, durum, görev türü, MoSCoW, Eisenhower, risk ve keşif kaynağına göre filtreler; liste, tablo, kanban, zaman çizelgesi, kart, pivot, matris ve bağımlılık görünümleri sunar.
 
+Sayfalar:
+
+- `/`: görev ve eylem planı çalışma alanı
+- `/efor/`: dört kişilik ekip için Scrum kapasite kılavuzu, velocity kalibrasyonu, Planning Poker ve sprint valizi simülasyonu
+
 Yerel çalışma:
 
 ```bash
