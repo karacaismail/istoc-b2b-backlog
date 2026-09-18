@@ -73,9 +73,11 @@ const selectedGroupLabel = computed(() => groupOptions.find(option => option.val
 onMounted(async () => {
   sidebarOpen.value = window.innerWidth >= 1024
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}data/backlog.json`)
+    const response = await fetch(`${import.meta.env.BASE_URL}data/backlog.json?revision=25`, { cache: 'no-cache' })
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
-    data.value = await response.json()
+    const parsed: BacklogData = await response.json()
+    if (!parsed.completion || parsed.meta?.dataset_revision < 25) throw new Error('Görev verisi güncelleniyor. Lütfen sayfayı yenileyin.')
+    data.value = parsed
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : 'Veri yüklenemedi.'
   } finally { loading.value = false }
