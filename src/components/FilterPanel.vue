@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RotateCcw } from 'lucide-vue-next'
+import { ChevronDown, RotateCcw } from 'lucide-vue-next'
 import type { Filters, TaskSet } from '../types'
 
 defineProps<{ filters: Filters; sets: TaskSet[]; statusOptions: string[]; typeOptions: string[] }>()
@@ -7,87 +7,35 @@ const emit = defineEmits<{ reset: [] }>()
 const moscowOptions = ['Must', 'Should', 'Could', "Won't/şimdilik"]
 
 function toggle(list: string[], value: string) {
-  const i = list.indexOf(value)
-  if (i >= 0) list.splice(i, 1)
+  const index = list.indexOf(value)
+  if (index >= 0) list.splice(index, 1)
   else list.push(value)
 }
 </script>
 
 <template>
-  <section aria-label="Filtreler" class="space-y-5">
-    <div class="flex items-center justify-between">
-      <h2 class="text-lg font-bold">Filtreler</h2>
-      <button class="btn btn-ghost touch gap-2" @click="emit('reset')"><RotateCcw :size="18" /> Sıfırla</button>
+  <section aria-label="Filtreler" class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+      <div><h2 class="text-xl font-bold">Filtreler</h2><p class="text-base text-base-content/70">Birden fazla seçim yapabilirsiniz.</p></div>
+      <button class="btn btn-ghost touch gap-2" @click="emit('reset')"><RotateCcw :size="18" aria-hidden="true" /> Temizle</button>
     </div>
-    <label class="form-control block">
-      <span class="label-text mb-2 block font-semibold">Küme</span>
-      <select class="select select-bordered min-h-12 w-full" :value="filters.setIds[0] || ''" @change="filters.setIds = ($event.target as HTMLSelectElement).value ? [($event.target as HTMLSelectElement).value] : []">
-        <option value="">Tüm kümeler</option>
-        <option v-for="set in sets" :key="set.id" :value="set.id">{{ set.id }} · {{ set.name || set.title }}</option>
-      </select>
-    </label>
-    <fieldset>
-      <legend class="mb-2 font-semibold">Öncelik</legend>
-      <div class="grid grid-cols-2 gap-2">
-        <label v-for="value in ['P0','P1','P2','P3']" :key="value" class="label min-h-11 cursor-pointer justify-start gap-3 rounded-lg border border-base-300 px-3">
-          <input type="checkbox" class="checkbox checkbox-sm" :checked="filters.priorities.includes(value)" @change="toggle(filters.priorities, value)" />
-          <span>{{ value }}</span>
-        </label>
+
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100" open>
+      <summary class="filter-summary"><span>Küme <span v-if="filters.setIds.length" class="count-dot">{{ filters.setIds.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary>
+      <div class="max-h-72 space-y-2 overflow-y-auto border-t border-base-300 p-3 scrollbar-thin">
+        <button class="filter-option" :aria-pressed="!filters.setIds.length" @click="filters.setIds=[]">Tüm kümeler</button>
+        <button v-for="set in sets" :key="set.id" class="filter-option text-left" :aria-pressed="filters.setIds.includes(set.id)" @click="filters.setIds = filters.setIds.includes(set.id) ? [] : [set.id]"><span class="mono mr-2" translate="no">{{ set.id }}</span>{{ set.name || set.title }}</button>
       </div>
-    </fieldset>
-    <fieldset>
-      <legend class="mb-2 font-semibold">Durum</legend>
-      <div class="space-y-1">
-        <label v-for="value in statusOptions" :key="value" class="label min-h-11 cursor-pointer justify-start gap-3 rounded-lg px-2 hover:bg-base-200">
-          <input type="checkbox" class="checkbox checkbox-sm" :checked="filters.statuses.includes(value)" @change="toggle(filters.statuses, value)" />
-          <span>{{ value }}</span>
-        </label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend class="mb-2 font-semibold">Keşif kaynağı</legend>
-      <div class="space-y-1">
-        <label v-for="value in ['Önceden işlenen','Arşiv taramasında tespit edilen']" :key="value" class="label min-h-11 cursor-pointer justify-start gap-3 rounded-lg px-2 hover:bg-base-200">
-          <input type="checkbox" class="checkbox checkbox-sm" :checked="filters.discovery.includes(value)" @change="toggle(filters.discovery, value)" />
-          <span>{{ value }}</span>
-        </label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend class="mb-2 font-semibold">Görev türü</legend>
-      <div class="max-h-56 space-y-1 overflow-y-auto pr-1 scrollbar-thin">
-        <label v-for="value in typeOptions" :key="value" class="label min-h-11 cursor-pointer justify-start gap-3 rounded-lg px-2 hover:bg-base-200">
-          <input type="checkbox" class="checkbox checkbox-sm" :checked="filters.types.includes(value)" @change="toggle(filters.types, value)" />
-          <span>{{ value }}</span>
-        </label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend class="mb-2 font-semibold">MoSCoW</legend>
-      <div class="space-y-1">
-        <label v-for="value in moscowOptions" :key="value" class="label min-h-11 cursor-pointer justify-start gap-3 rounded-lg px-2 hover:bg-base-200">
-          <input type="checkbox" class="checkbox checkbox-sm" :checked="filters.moscow.includes(value)" @change="toggle(filters.moscow, value)" />
-          <span>{{ value }}</span>
-        </label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend class="mb-2 font-semibold">Eisenhower</legend>
-      <div class="space-y-1">
-        <label v-for="value in ['Yap','Planla','Devret','Ele/sonra']" :key="value" class="label min-h-11 cursor-pointer justify-start gap-3 rounded-lg px-2 hover:bg-base-200">
-          <input type="checkbox" class="checkbox checkbox-sm" :checked="filters.eisenhower.includes(value)" @change="toggle(filters.eisenhower, value)" />
-          <span>{{ value }}</span>
-        </label>
-      </div>
-    </fieldset>
-    <label class="form-control block">
-      <span class="label-text mb-2 block font-semibold">En az risk: {{ filters.riskMin }}/25</span>
-      <input v-model.number="filters.riskMin" type="range" min="0" max="25" step="1" class="range range-accent" />
-    </label>
-    <div class="space-y-1">
-      <label class="label min-h-11 cursor-pointer justify-start gap-3"><input v-model="filters.onlyStarred" type="checkbox" class="toggle toggle-sm" /> Yalnız yıldızlı</label>
-      <label class="label min-h-11 cursor-pointer justify-start gap-3"><input v-model="filters.onlySelected" type="checkbox" class="toggle toggle-sm" /> Yalnız seçili</label>
-      <label class="label min-h-11 cursor-pointer justify-start gap-3"><input v-model="filters.showHidden" type="checkbox" class="toggle toggle-sm" /> Kaldırılanları göster</label>
-    </div>
+    </details>
+
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100" open><summary class="filter-summary"><span>Öncelik <span v-if="filters.priorities.length" class="count-dot">{{ filters.priorities.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary><div class="filter-grid"><button v-for="value in ['P0','P1','P2','P3']" :key="value" class="filter-option" :aria-pressed="filters.priorities.includes(value)" @click="toggle(filters.priorities,value)">{{ value }}</button></div></details>
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100"><summary class="filter-summary"><span>Durum <span v-if="filters.statuses.length" class="count-dot">{{ filters.statuses.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary><div class="filter-grid"><button v-for="value in statusOptions" :key="value" class="filter-option" :aria-pressed="filters.statuses.includes(value)" @click="toggle(filters.statuses,value)">{{ value }}</button></div></details>
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100"><summary class="filter-summary"><span>Keşif kaynağı <span v-if="filters.discovery.length" class="count-dot">{{ filters.discovery.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary><div class="grid gap-2 p-3"><button v-for="value in ['Önceden işlenen','Arşiv taramasında tespit edilen']" :key="value" class="filter-option text-left" :aria-pressed="filters.discovery.includes(value)" @click="toggle(filters.discovery,value)">{{ value }}</button></div></details>
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100"><summary class="filter-summary"><span>Görev türü <span v-if="filters.types.length" class="count-dot">{{ filters.types.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary><div class="filter-grid max-h-72 overflow-y-auto"><button v-for="value in typeOptions" :key="value" class="filter-option break-all" :aria-pressed="filters.types.includes(value)" @click="toggle(filters.types,value)">{{ value }}</button></div></details>
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100"><summary class="filter-summary"><span>MoSCoW <span v-if="filters.moscow.length" class="count-dot">{{ filters.moscow.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary><div class="filter-grid"><button v-for="value in moscowOptions" :key="value" class="filter-option" :aria-pressed="filters.moscow.includes(value)" @click="toggle(filters.moscow,value)">{{ value }}</button></div></details>
+    <details class="filter-group rounded-xl border border-base-300 bg-base-100"><summary class="filter-summary"><span>Eisenhower <span v-if="filters.eisenhower.length" class="count-dot">{{ filters.eisenhower.length }}</span></span><ChevronDown :size="20" aria-hidden="true" /></summary><div class="filter-grid"><button v-for="value in ['Yap','Planla','Devret','Ele/sonra']" :key="value" class="filter-option" :aria-pressed="filters.eisenhower.includes(value)" @click="toggle(filters.eisenhower,value)">{{ value }}</button></div></details>
+
+    <label class="block rounded-xl border border-base-300 bg-base-100 p-4"><span class="mb-3 flex justify-between gap-3 font-bold"><span>En az risk</span><span>{{ filters.riskMin }}/25</span></span><input v-model.number="filters.riskMin" aria-label="En az risk puanı" type="range" min="0" max="25" step="1" class="range range-accent" /></label>
+    <div class="grid gap-2"><label class="switch-row"><input v-model="filters.onlyStarred" type="checkbox" class="toggle" /> Yalnız yıldızlı</label><label class="switch-row"><input v-model="filters.onlySelected" type="checkbox" class="toggle" /> Yalnız seçili</label><label class="switch-row"><input v-model="filters.showHidden" type="checkbox" class="toggle" /> Kaldırılanları göster</label></div>
   </section>
 </template>

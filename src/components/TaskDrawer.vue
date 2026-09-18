@@ -42,22 +42,18 @@ function addChecklist() {
       </header>
 
       <div class="space-y-7 p-4 pb-24 md:p-6">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="form-control block"><span class="label-text mb-2 block font-semibold">Durum</span>
-            <select class="select select-bordered min-h-12 w-full" :value="task.effectiveStatus" @change="emit('update', task.id, { status: ($event.target as HTMLSelectElement).value })">
-              <option v-for="status in statuses" :key="status">{{ status }}</option>
-            </select>
-          </label>
-          <label class="form-control block"><span class="label-text mb-2 block font-semibold">Öncelik</span>
-            <select class="select select-bordered min-h-12 w-full" :value="task.effectivePriority" @change="emit('update', task.id, { priority: ($event.target as HTMLSelectElement).value as Priority })">
-              <option v-for="value in priorities" :key="value">{{ value }}</option>
-            </select>
-          </label>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <fieldset><legend class="mb-2 font-bold">Durum</legend><div class="grid grid-cols-2 gap-2">
+            <button v-for="status in statuses" :key="status" class="choice-chip min-h-12 rounded-xl border-2 px-3 text-left font-semibold" :class="task.effectiveStatus === status ? 'border-accent bg-accent/10 text-accent' : 'border-base-300 bg-base-100'" :aria-pressed="task.effectiveStatus === status" @click="emit('update', task.id, { status })">{{ status }}</button>
+          </div></fieldset>
+          <fieldset><legend class="mb-2 font-bold">Öncelik</legend><div class="grid grid-cols-2 gap-2">
+            <button v-for="value in priorities" :key="value" class="choice-chip min-h-12 rounded-xl border-2 px-3 font-bold" :class="task.effectivePriority === value ? 'border-primary bg-primary text-primary-content' : 'border-base-300 bg-base-100'" :aria-pressed="task.effectivePriority === value" @click="emit('update', task.id, { priority: value })">{{ value }}</button>
+          </div></fieldset>
           <label class="form-control block"><span class="label-text mb-2 block font-semibold">Sorumlu</span>
-            <input class="input input-bordered min-h-12 w-full" :value="task.workspace.assignee || ''" placeholder="Atanmamış" @change="emit('update', task.id, { assignee: ($event.target as HTMLInputElement).value })" />
+            <input name="assignee" autocomplete="off" class="input input-bordered min-h-12 w-full" :value="task.workspace.assignee || ''" placeholder="Örnek: Ahmet…" @change="emit('update', task.id, { assignee: ($event.target as HTMLInputElement).value })" />
           </label>
           <label class="form-control block"><span class="label-text mb-2 block font-semibold">Hedef tarih</span>
-            <input type="date" class="input input-bordered min-h-12 w-full" :value="task.workspace.dueDate || task.planning.target_date" @change="emit('update', task.id, { dueDate: ($event.target as HTMLInputElement).value })" />
+            <input name="due-date" autocomplete="off" type="date" class="input input-bordered min-h-12 w-full" :value="task.workspace.dueDate || task.planning.target_date" @change="emit('update', task.id, { dueDate: ($event.target as HTMLInputElement).value })" />
           </label>
         </div>
 

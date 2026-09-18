@@ -6,6 +6,7 @@ import {
   PanelLeftClose, Search, SlidersHorizontal, Sun, Table2, Undo2, X,
 } from 'lucide-vue-next'
 import FilterPanel from './components/FilterPanel.vue'
+import ChoiceSheet from './components/ChoiceSheet.vue'
 import TaskCard from './components/TaskCard.vue'
 import TaskDrawer from './components/TaskDrawer.vue'
 import { useWorkspace } from './useWorkspace'
@@ -22,6 +23,7 @@ const sidebarOpen = ref(true)
 const activeTaskId = ref<string | null>(null)
 const toast = ref('')
 const dark = ref(false)
+const choiceSheet = ref<'sort' | 'group' | null>(null)
 const { overrides, undoStack, update, batchUpdate, taskView, undo, reset, exportWorkspace } = useWorkspace()
 
 const filters = reactive<Filters>({
@@ -42,6 +44,26 @@ const views: { id: ViewType; label: string; icon: typeof List }[] = [
   { id: 'matrix', label: 'Matrisler', icon: Grid2X2 },
   { id: 'dependencies', label: 'Bağımlılık', icon: Network },
 ]
+const sortOptions = [
+  { value: 'b2b-priority', label: 'B2B önceliği', hint: 'Temel ve engelleyici işler önce' },
+  { value: 'centrality', label: 'Bağımlılık merkeziyeti', hint: 'En fazla işi etkileyenler önce' },
+  { value: 'risk', label: 'Risk', hint: 'Yüksek riskten düşüğe' },
+  { value: 'effort', label: 'Efor', hint: 'Küçük işlerden büyüğe' },
+  { value: 'date', label: 'Hedef tarih', hint: 'Yakın tarihten uzağa' },
+  { value: 'id', label: 'Görev ID', hint: 'Sayısal görev sırası' },
+  { value: 'title', label: 'Başlık', hint: 'Alfabetik sıra' },
+]
+const groupOptions = [
+  { value: 'set', label: 'Küme', hint: 'Ürün alanlarına göre' },
+  { value: 'priority', label: 'Öncelik', hint: 'P0–P3 bantlarına göre' },
+  { value: 'status', label: 'Durum', hint: 'İş akışı aşamasına göre' },
+  { value: 'eisenhower', label: 'Eisenhower', hint: 'Yap, planla, devret, ele' },
+  { value: 'horizon', label: 'Planlama ufku', hint: 'Şimdi, sonraki, daha sonra' },
+  { value: 'discovery', label: 'Keşif kaynağı', hint: 'Önceki kapsam veya arşiv taraması' },
+  { value: 'none', label: 'Kümeleme yok', hint: 'Tek sıralı liste' },
+]
+const selectedSortLabel = computed(() => sortOptions.find(option => option.value === filters.sort)?.label || 'Sıralama')
+const selectedGroupLabel = computed(() => groupOptions.find(option => option.value === filters.group)?.label || 'Kümeleme')
 
 onMounted(async () => {
   sidebarOpen.value = window.innerWidth >= 1024
@@ -176,6 +198,12 @@ function setStatus(id: string, status: string) { update(id, { status }) }
 function dateFor(task: ViewTask) { return task.workspace.dueDate || task.planning.target_date }
 function printPage() { window.print() }
 function selectView(id: ViewType) { view.value = id; if (window.innerWidth < 1024) sidebarOpen.value = false }
+function chooseSheet(value: string) {
+  if (choiceSheet.value === 'sort') filters.sort = value
+  if (choiceSheet.value === 'group') filters.group = value
+  choiceSheet.value = null
+  if (navigator.vibrate && matchMedia('(pointer: coarse)').matches) navigator.vibrate(8)
+}
 </script>
 
 <template>
@@ -226,19 +254,19 @@ function selectView(id: ViewType) { view.value = id; if (window.innerWidth < 102
 
       <main id="main" class="min-w-0 flex-1 p-3 sm:p-5 lg:p-6 bottom-safe" tabindex="-1">
         <section class="mb-5 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
-          <label class="input input-bordered flex min-h-12 items-center gap-3 bg-base-100">
+          <label class="input input-bordered flex min-h-14 items-center gap-3 rounded-xl bg-base-100 shadow-sm">
             <Search :size="20" class="text-base-content/60" />
             <input v-model="filters.query" type="search" class="min-w-0 grow text-base" placeholder="Görev, ID, küme, bağlam veya tanım ara" aria-label="Görevlerde ara" />
             <kbd class="kbd hidden sm:inline-flex">/</kbd>
           </label>
           <div class="grid grid-cols-2 gap-2 sm:flex">
-            <button class="btn btn-outline min-h-12 gap-2 lg:hidden" @click="mobileFilters = true"><Filter :size="19" /> Filtre</button>
-            <select v-model="filters.sort" class="select select-bordered min-h-12 bg-base-100" aria-label="Sıralama">
-              <option value="b2b-priority">B2B önceliği · varsayılan</option><option value="centrality">Bağımlılık merkeziyeti</option><option value="risk">Risk: yüksekten düşüğe</option><option value="effort">Efor: küçükten büyüğe</option><option value="date">Hedef tarih</option><option value="id">Görev ID</option><option value="title">Başlık</option>
-            </select>
-            <select v-model="filters.group" class="select select-bordered min-h-12 bg-base-100" aria-label="Kümeleme">
-              <option value="set">Kümeye göre</option><option value="priority">Önceliğe göre</option><option value="status">Duruma göre</option><option value="eisenhower">Eisenhower</option><option value="horizon">Ufka göre</option><option value="discovery">Keşif kaynağına göre</option><option value="none">Kümeleme yok</option>
-            </select>
+            <button class="btn col-span-2 min-h-14 gap-2 rounded-xl border-2 border-primary bg-base-100 sm:col-span-1 lg:hidden" @click="mobileFilters = true"><Filter :size="20" aria-hidden="true" /> Filtrele</button>
+            <button class="control-button min-h-14 min-w-0 rounded-xl border-2 border-base-300 bg-base-100 px-3 text-left shadow-sm" aria-haspopup="dialog" @click="choiceSheet='sort'">
+              <span class="block text-base text-base-content/70">Sırala</span><strong class="block truncate">{{ selectedSortLabel }}</strong>
+            </button>
+            <button class="control-button min-h-14 min-w-0 rounded-xl border-2 border-base-300 bg-base-100 px-3 text-left shadow-sm" aria-haspopup="dialog" @click="choiceSheet='group'">
+              <span class="block text-base text-base-content/70">Grupla</span><strong class="block truncate">{{ selectedGroupLabel }}</strong>
+            </button>
           </div>
         </section>
 
@@ -298,16 +326,23 @@ function selectView(id: ViewType) { view.value = id; if (window.innerWidth < 102
           </div>
         </section>
 
-        <section v-else-if="view === 'table'" class="overflow-x-auto rounded-xl border border-base-300 bg-base-100 scrollbar-thin">
-          <table class="table table-zebra text-base"><thead><tr><th>Seç</th><th>ID</th><th>Görev</th><th>Küme</th><th>Durum</th><th>Öncelik</th><th>Risk</th><th>Efor</th><th>Hedef</th></tr></thead>
+        <section v-else-if="view === 'table'" class="space-y-3">
+          <div class="grid gap-3 md:hidden">
+            <article v-for="task in filteredTasks" :key="task.id" class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
+              <div class="flex items-start gap-3"><input type="checkbox" class="checkbox mt-1 h-6 w-6" :checked="task.workspace.selected" :aria-label="`${task.id} seç`" @change="update(task.id, { selected: !task.workspace.selected })" /><button class="min-w-0 flex-1 text-left" @click="openTask(task)"><span class="mono font-bold text-accent" translate="no">{{ task.id }}</span><h2 class="mt-1 break-words text-lg font-bold leading-snug">{{ task.title }}</h2></button></div>
+              <dl class="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-base-200 p-3"><div><dt>Durum</dt><dd class="font-bold">{{ task.effectiveStatus }}</dd></div><div><dt>Öncelik</dt><dd class="font-bold whitespace-nowrap">{{ task.effectivePriority }} · {{ task.planning.priority_score }}</dd></div><div><dt>Risk / Efor</dt><dd class="font-bold">{{ task.planning.risk_score }}/25 · {{ task.planning.effort_points }} SP</dd></div><div><dt>Hedef</dt><dd class="mono font-bold whitespace-nowrap">{{ dateFor(task) }}</dd></div></dl>
+              <button class="btn btn-primary mt-3 min-h-12 w-full" @click="openTask(task)">Görevi aç</button>
+            </article>
+          </div>
+          <div class="hidden overflow-x-auto rounded-2xl border border-base-300 bg-base-100 md:block scrollbar-thin"><table class="table table-zebra text-base"><thead><tr><th>Seç</th><th>ID</th><th>Görev</th><th>Küme</th><th>Durum</th><th>Öncelik</th><th>Risk</th><th>Efor</th><th>Hedef</th></tr></thead>
             <tbody><tr v-for="task in filteredTasks" :key="task.id"><td><input type="checkbox" class="checkbox" :checked="task.workspace.selected" @change="update(task.id, { selected: !task.workspace.selected })" /></td><td class="mono font-semibold text-accent">{{ task.id }}</td><td><button class="min-w-64 max-w-xl text-left font-semibold hover:underline" @click="openTask(task)">{{ task.title }}</button></td><td>{{ setMap.get(task.set_id) }}</td><td>{{ task.effectiveStatus }}</td><td><span class="badge badge-outline">{{ task.effectivePriority }} · {{ task.planning.priority_score }}</span></td><td>{{ task.planning.risk_score }}/25</td><td>{{ task.planning.effort_points }}</td><td class="mono">{{ dateFor(task) }}</td></tr></tbody>
-          </table>
+          </table></div>
         </section>
 
         <section v-else-if="view === 'kanban'" class="grid snap-x snap-mandatory auto-cols-[min(88vw,22rem)] grid-flow-col gap-3 overflow-x-auto pb-4 xl:auto-cols-[22rem] scrollbar-thin">
           <div v-for="status in kanbanStatuses" :key="status" class="snap-start rounded-xl border border-base-300 bg-base-300/40 p-3">
             <div class="mb-3 flex items-center justify-between"><h2 class="font-bold">{{ status }}</h2><span class="badge">{{ filteredTasks.filter(t => t.effectiveStatus === status).length }}</span></div>
-            <div class="space-y-3"><article v-for="task in filteredTasks.filter(t => t.effectiveStatus === status)" :key="task.id" class="card border border-base-300 bg-base-100 shadow-sm"><div class="card-body gap-2 p-4"><span class="mono text-accent">{{ task.id }}</span><button class="text-left font-semibold" @click="openTask(task)">{{ task.title }}</button><div class="flex items-center justify-between"><span class="badge badge-outline">{{ task.effectivePriority }}</span><select class="select select-ghost select-sm" :value="status" aria-label="Durumu değiştir" @change="setStatus(task.id, ($event.target as HTMLSelectElement).value)"><option v-for="s in kanbanStatuses" :key="s">{{ s }}</option></select></div></div></article></div>
+            <div class="space-y-3"><article v-for="task in filteredTasks.filter(t => t.effectiveStatus === status)" :key="task.id" class="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"><button class="w-full text-left" @click="openTask(task)"><span class="mono font-bold text-accent" translate="no">{{ task.id }}</span><h3 class="mt-1 break-words font-bold leading-snug">{{ task.title }}</h3><span class="mt-3 inline-flex min-h-8 items-center rounded-full bg-base-200 px-3 font-bold">{{ task.effectivePriority }} · {{ task.planning.effort_points }} SP</span><span class="mt-3 block text-accent underline decoration-2 underline-offset-4">Ayrıntı ve durum değiştir</span></button></article></div>
           </div>
         </section>
 
@@ -343,6 +378,7 @@ function selectView(id: ViewType) { view.value = id; if (window.innerWidth < 102
     <div v-if="mobileFilters && data" class="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label="Filtreler"><button class="absolute inset-0 bg-black/55" aria-label="Filtreleri kapat" @click="mobileFilters=false"></button><section class="absolute inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-2xl bg-base-100 p-5 pb-24"><div class="mb-4 flex justify-between"><h2 class="text-xl font-bold">Filtrele</h2><button class="btn btn-ghost btn-square" @click="mobileFilters=false"><X /></button></div><FilterPanel :filters="filters" :sets="data.task_sets" :status-options="statusOptions" :type-options="typeOptions" @reset="resetFilters" /><button class="btn btn-primary mt-6 min-h-12 w-full" @click="mobileFilters=false">{{ filteredTasks.length }} sonucu göster</button></section></div>
 
     <TaskDrawer :task="activeTask" :set-name="activeTask ? (setMap.get(activeTask.set_id) || activeTask.set_id) : ''" :child-tasks="activeChildren" @close="activeTaskId=null" @update="updateAndSnapshot" @hide-children="hideChildren" @copy="copyTask" @open-related="openRelated" />
+    <ChoiceSheet v-if="choiceSheet" :title="choiceSheet === 'sort' ? 'Görevleri sırala' : 'Görevleri grupla'" :value="choiceSheet === 'sort' ? filters.sort : filters.group" :options="choiceSheet === 'sort' ? sortOptions : groupOptions" @close="choiceSheet=null" @select="chooseSheet" />
     <div v-if="toast" class="toast toast-center toast-top z-[200] mt-16" aria-live="polite"><div class="alert alert-success shadow-lg"><span>{{ toast }}</span></div></div>
   </div>
 </template>
