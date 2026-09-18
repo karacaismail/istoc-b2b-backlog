@@ -1,0 +1,28 @@
+{
+  "name": "istoc-b2b-backlog-explorer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "data": "python3 scripts/generate-data.py",
+    "dev": "npm run data && vite",
+    "build": "npm run data && vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "check": "npm run build"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.0.0",
+    "lucide-vue-next": "^0.544.0",
+    "vue": "^3.5.21"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/node": "^24.5.2",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "daisyui": "^5.1.13",
+    "tailwindcss": "^4.1.13",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.7",
+    "vue-tsc": "^3.0.7"
+  }
+}
